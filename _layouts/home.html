@@ -3,7 +3,45 @@ layout: default
 ---
 
 <div>
+<head>
+<script type="text/javascript">
+<!--
 
+function disp(){
+
+	var now = new Date();
+
+	var hour = now.getHours(); // 時
+	var min = now.getMinutes(); // 分
+	var sec = now.getSeconds(); // 秒
+
+	// 数値が1桁の場合、頭に0を付けて2桁で表示する指定
+	if(hour < 10) { hour = "0" + hour; }
+	if(min < 10) { min = "0" + min; }
+	if(sec < 10) { sec = "0" + sec; }
+
+	// テキストフィールドにデータを渡す処理
+	document.form1.field1.value = hour; // 時
+	document.form1.field2.value = min; // 分
+	document.form1.field3.value = sec; // 秒
+
+	settimeout("disp()", 1000);
+
+}
+
+// -->
+</script>
+
+</head>
+<body onLoad="disp()">
+
+<form action="#" name="form1">
+<input type="text" name="field1" size="2"> 時
+<input type="text" name="field2" size="2"> 分
+<input type="text" name="field3" size="2"> 秒
+</form>
+
+</body>
 {%- assign posts-text = 'Posts' -%}
 {%- if site.data.text-for.tPosts -%}{%- assign posts-text = site.data.text-for.tPosts -%}{%- endif -%}
 	<h1>{{ posts-text }}</h1>
