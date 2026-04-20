@@ -8,7 +8,7 @@ GitHub Pages使うために公開してるだけだから見んな
 
 [ここだよバーロー](http://valhallarsrx.qzz.io)
 
-Cloudflare Pagesで無理矢理動かしますgg
+~~Cloudflare Pagesで無理矢理動かしますgg~~
 
 # これのファイルの中身は？
 
