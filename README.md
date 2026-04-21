@@ -4,6 +4,8 @@
 
 [実際にホスティングしてるWebサイトで使ってるやつ](https://github.com/Balancingrock/classic-jekyll-theme)
 
+###### 実ブログで運用してるからコミット多いのは気にしないで
+
 ## OpenNICでどのようにホスティングするのか
 
 ~~Wiki整備してるからそっち見て行ってね~~
