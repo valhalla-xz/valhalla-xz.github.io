@@ -1,152 +1,289 @@
-const tableBody = document.querySelector("#parts-table");
-const searchInput = document.querySelector("#search");
-const typeFilter = document.querySelector("#type-filter");
-const sortFilter = document.querySelector("#sort-filter");
-const resultCount = document.querySelector("#result-count");
-const dialog = document.querySelector("#part-dialog");
-const dialogTitle = document.querySelector("#dialog-title");
-const dialogContent = document.querySelector("#dialog-content");
-const closeDialog = document.querySelector("#close-dialog");
 
-let parts = [];
+const $ = (selector) => document.querySelector(selector);
 
-async function loadParts() {
+const results = $("#results");
+const search = $("#search");
+const category = $("#category");
+const sort = $("#sort");
+const count = $("#count");
+const dialog = $("#details");
+
+let database = [];
+
+const categoryNames = {
+  CPU: "CPU",
+  GPU: "GPU",
+  Motherboard: "マザーボード"
+};
+
+async function loadDatabase() {
   try {
     const response = await fetch("./data.json");
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    parts = await response.json();
-    renderParts();
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!Array.isArray(data)) {
+      throw new Error("JSONのルートは配列である必要がある");
+    }
+
+    database = data;
+    render();
   } catch (error) {
-    tableBody.innerHTML = '<tr><td colspan="6">データを読み込めなかった。ローカルで確認する場合は、簡易HTTPサーバー経由で開くか、GitHub Pagesに公開して確認すること。</td></tr>';
-    resultCount.textContent = "読み込みエラー";
-    console.error("データ読み込みエラー:", error);
+    console.error(error);
+    count.textContent = "データの読み込みに失敗";
+    results.replaceChildren();
+
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+
+    cell.colSpan = 6;
+    cell.textContent =
+      "data.jsonを読み込めない。JSONの構文とファイルの配置を確認すること。";
+
+    row.append(cell);
+    results.append(row);
   }
 }
 
-function getFilteredParts() {
-  const keyword = searchInput.value.trim().toLocaleLowerCase("ja");
-  const type = typeFilter.value;
-  const sort = sortFilter.value;
-
-  const filtered = parts.filter((part) => {
-    const searchable = [
-      part.type, part.model, part.manufacturer, part.architecture,
-      part.socket, part.memory_type?.join(" "), part.notes
-    ].filter(Boolean).join(" ").toLocaleLowerCase("ja");
-
-    return (type === "all" || part.type === type) && searchable.includes(keyword);
-  });
-
-  filtered.sort((a, b) => {
-    if (sort === "power-asc") return numericPower(a) - numericPower(b);
-    if (sort === "power-desc") return numericPower(b) - numericPower(a);
-    return a.model.localeCompare(b.model, "ja");
-  });
-  return filtered;
+function allText(part) {
+  return JSON.stringify(part).toLocaleLowerCase("ja");
 }
 
-function numericPower(part) {
-  return Number.isFinite(part.power_w) ? part.power_w : Number.POSITIVE_INFINITY;
+function power(part) {
+  return Number.isFinite(part.power_w)
+    ? part.power_w
+    : Number.POSITIVE_INFINITY;
 }
 
-function renderParts() {
-  const filtered = getFilteredParts();
-  resultCount.textContent = `${filtered.length} 件 / 全 ${parts.length} 件`;
+function getSpecs(part) {
+  if (part.type === "CPU") {
+    const cores = `${part.cores ?? "?"}コア`;
+    const threads = `${part.threads ?? "?"}スレッド`;
+    const watts = Number.isFinite(part.power_w)
+      ? `${part.power_w} W (${part.power_type || "定義不明"})`
+      : "電力値未登録";
+
+    return `${cores} / ${threads} / ${watts}`;
+  }
+
+  if (part.type === "GPU") {
+    const memory = part.vram_gb
+      ? `${part.vram_gb} GB ${part.vram_type || ""}`
+      : "VRAM未登録";
+
+    const watts = Number.isFinite(part.power_w)
+      ? ` / ${part.power_w} W`
+      : "";
+
+    return `${memory} / ${part.pcie || "PCIe未登録"}${watts}`;
+  }
+
+  const slots = Array.isArray(part.pcie_slots)
+    ? part.pcie_slots.reduce(
+        (sum, slot) => sum + (slot.count || 1),
+        0
+      )
+    : 0;
+
+  return [
+    part.chipset,
+    part.form_factor,
+    part.memory_type,
+    `${part.ram_slots ?? "?"} RAMスロット`,
+    `PCIeスロット ${slots}`
+  ].filter(Boolean).join(" / ");
+}
+
+function render() {
+  const keyword = search.value.trim().toLocaleLowerCase("ja");
+  const selectedCategory = category.value;
+
+  const filtered = database.filter((part) => {
+    const matchesCategory =
+      selectedCategory === "all" ||
+      part.type === selectedCategory;
+
+    const matchesKeyword =
+      allText(part).includes(keyword);
+
+    return matchesCategory && matchesKeyword;
+  });
+
+  if (sort.value === "power-asc") {
+    filtered.sort((a, b) => power(a) - power(b));
+  } else if (sort.value === "power-desc") {
+    filtered.sort((a, b) => power(b) - power(a));
+  } else {
+    filtered.sort((a, b) =>
+      a.model.localeCompare(b.model, "ja")
+    );
+  }
+
+  count.textContent =
+    `${filtered.length} 件 / 全 ${database.length} 件`;
+
+  results.replaceChildren();
 
   if (filtered.length === 0) {
-    tableBody.innerHTML = '<tr><td colspan="6">該当する製品はない。</td></tr>';
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+
+    cell.colSpan = 6;
+    cell.textContent = "該当する製品はない。";
+
+    row.append(cell);
+    results.append(row);
     return;
   }
 
-  tableBody.replaceChildren();
   for (const part of filtered) {
     const row = document.createElement("tr");
-    addCell(row, part.type || "未分類");
-    addCell(row, part.model || "名称不明");
+
+    addCell(row, categoryNames[part.type] || part.type);
+    addCell(row, part.model || "名称未登録");
     addCell(row, part.manufacturer || "不明");
-    addCell(row, part.socket || "—");
-    addCell(row, formatPower(part));
+    addCell(row, part.socket || part.pcie || "—");
+    addCell(row, getSpecs(part));
+
     const actionCell = document.createElement("td");
     const button = document.createElement("button");
+
     button.type = "button";
     button.textContent = "詳細";
     button.addEventListener("click", () => showDetails(part));
+
     actionCell.append(button);
     row.append(actionCell);
-    tableBody.append(row);
+    results.append(row);
   }
 }
 
 function addCell(row, value) {
   const cell = document.createElement("td");
-  cell.textContent = value;
+  cell.textContent = String(value);
   row.append(cell);
 }
 
-function formatPower(part) {
-  if (!Number.isFinite(part.power_w)) return "未登録";
-  return `${part.power_w} W${part.power_label ? `（${part.power_label}）` : ""}`;
-}
-
 function showDetails(part) {
-  dialogTitle.textContent = part.model || "製品詳細";
-  dialogContent.replaceChildren();
+  $("#detail-title").textContent = part.model || "製品詳細";
 
-  const details = [
-    ["種別", part.type],
-    ["メーカー", part.manufacturer],
-    ["アーキテクチャ", part.architecture],
-    ["ソケット・接続", part.socket],
-    ["コア数", part.cores],
-    ["スレッド数", part.threads],
-    ["基本クロック", part.base_clock_ghz ? `${part.base_clock_ghz} GHz` : null],
-    ["最大ブーストクロック", part.max_clock_ghz ? `${part.max_clock_ghz} GHz` : null],
-    ["電力値", Number.isFinite(part.power_w) ? `${part.power_w} W` : null],
-    ["電力値の定義", part.power_label],
-    ["メモリ規格", part.memory_type?.join("、")],
-    ["最大メモリ容量", part.max_memory_gb ? `${part.max_memory_gb} GB` : null],
-    ["発売時期", part.release_date],
-    ["互換性メモ", part.notes],
-  ];
+  const container = $("#detail-content");
+  container.replaceChildren();
 
   const list = document.createElement("dl");
   list.className = "detail-list";
-  for (const [label, value] of details) {
-    if (value === undefined || value === null || value === "") continue;
+
+  const excluded = new Set([
+    "type",
+    "model",
+    "manufacturer",
+    "source_url"
+  ]);
+
+  const labels = {
+    architecture: "アーキテクチャ",
+    chipset: "チップセット",
+    socket: "ソケット",
+    form_factor: "フォームファクタ",
+    cores: "コア数",
+    threads: "スレッド数",
+    p_cores: "Pコア数",
+    e_cores: "Eコア数",
+    base_clock_ghz: "基本クロック (GHz)",
+    boost_clock_ghz: "最大ブーストクロック (GHz)",
+    power_w: "電力値 (W)",
+    power_type: "電力値の定義",
+    max_turbo_power_w: "最大ターボ電力 (W)",
+    memory_types: "対応メモリ規格",
+    memory_type: "メモリ規格",
+    max_memory_gb: "最大メモリ容量 (GB)",
+    pcie: "PCIe接続",
+    vram_gb: "VRAM容量 (GB)",
+    vram_type: "VRAM規格",
+    ram_slots: "RAMスロット数",
+    pcie_slots: "PCIeスロット構成",
+    wifi: "Wi-Fi",
+    wifi_standard: "Wi-Fi規格",
+    bluetooth: "Bluetooth",
+    wired_lan: "有線LAN",
+    m2_slots: "M.2スロット数",
+    sata_ports: "SATAポート数",
+    power_connectors: "電源コネクタ"
+  };
+
+  for (const [key, value] of Object.entries(part)) {
+    if (
+      excluded.has(key) ||
+      value === null ||
+      value === undefined ||
+      value === ""
+    ) {
+      continue;
+    }
+
     const dt = document.createElement("dt");
     const dd = document.createElement("dd");
-    dt.textContent = label;
-    dd.textContent = String(value);
+
+    dt.textContent = labels[key] || key;
+
+    if (key === "pcie_slots" && Array.isArray(value)) {
+      dd.textContent = value.map((slot) => {
+        return [
+          `${slot.count ?? 1} × ${slot.physical}`,
+          slot.generation,
+          `電気的接続: ${slot.electrical_lanes}`
+        ].filter(Boolean).join(" / ");
+      }).join("\n");
+    } else if (Array.isArray(value)) {
+      dd.textContent = value.join("、");
+    } else if (typeof value === "boolean") {
+      dd.textContent = value ? "対応" : "非対応";
+    } else if (typeof value === "object") {
+      dd.textContent = JSON.stringify(value);
+    } else {
+      dd.textContent = String(value);
+    }
+
     list.append(dt, dd);
   }
-  dialogContent.append(list);
+
+  container.append(list);
 
   if (part.source_url) {
     const paragraph = document.createElement("p");
     const link = document.createElement("a");
+
     link.href = part.source_url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.className = "source-link";
-    link.textContent = "出典を開く";
+    link.textContent = "メーカー公式の仕様ページ";
+
     paragraph.append(link);
-    dialogContent.append(paragraph);
-  } else {
-    const note = document.createElement("p");
-    note.className = "note";
-    note.textContent = "出典URLは未登録。公開前に公式資料を確認して登録すること。";
-    dialogContent.append(note);
+    container.append(paragraph);
   }
 
-  if (typeof dialog.showModal === "function") dialog.showModal();
+  if (typeof dialog.showModal === "function") {
+    dialog.showModal();
+  }
 }
 
-searchInput.addEventListener("input", renderParts);
-typeFilter.addEventListener("change", renderParts);
-sortFilter.addEventListener("change", renderParts);
-closeDialog.addEventListener("click", () => dialog.close());
-dialog.addEventListener("click", (event) => {
-  if (event.target === dialog) dialog.close();
+search.addEventListener("input", render);
+category.addEventListener("change", render);
+sort.addEventListener("change", render);
+
+$("#close").addEventListener("click", () => {
+  dialog.close();
 });
 
-loadParts();
+dialog.addEventListener("click", (event) => {
+  if (event.target === dialog) {
+    dialog.close();
+  }
+});
+
+loadDatabase();
