@@ -1,0 +1,46 @@
+[
+  {
+    "type": "CPU",
+    "model": "Core i5-4590",
+    "manufacturer": "Intel",
+    "architecture": "Haswell Refresh",
+    "socket": "LGA1150",
+    "cores": 4,
+    "threads": 4,
+    "base_clock_ghz": 3.3,
+    "max_clock_ghz": 3.7,
+    "power_w": 84,
+    "power_label": "TDP",
+    "memory_type": ["DDR3", "DDR3L"],
+    "max_memory_gb": 32,
+    "notes": "サンプルデータ。メモリ対応やマザーボード互換性は、個別の製品仕様とBIOS情報も確認すること。",
+    "source_url": "https://www.intel.com/content/www/us/en/products/sku/80815/intel-core-i54590-processor-6m-cache-up-to-3-70-ghz/specifications.html"
+  },
+  {
+    "type": "GPU",
+    "model": "Radeon RX Vega 64",
+    "manufacturer": "AMD",
+    "architecture": "Vega",
+    "socket": "PCI Express x16",
+    "power_w": 295,
+    "power_label": "Typical Board Power（参考値・モデル差あり）",
+    "notes": "リファレンス仕様を想定したサンプル。ボードパートナー製品では電力値、補助電源、寸法が異なる場合がある。",
+    "source_url": "https://www.amd.com/en/products/graphics/desktops/radeon/500-series/amd-radeon-rx-vega-64.html"
+  },
+  {
+    "type": "CPU",
+    "model": "Ryzen 7 5700X",
+    "manufacturer": "AMD",
+    "architecture": "Zen 3",
+    "socket": "AM4",
+    "cores": 8,
+    "threads": 16,
+    "base_clock_ghz": 3.4,
+    "max_clock_ghz": 4.6,
+    "power_w": 65,
+    "power_label": "Default TDP",
+    "memory_type": ["DDR4"],
+    "notes": "サンプルデータ。対応BIOSはマザーボードのメーカー公式CPUサポート一覧で確認すること。",
+    "source_url": "https://www.amd.com/en/products/processors/desktops/ryzen/5000-series/amd-ryzen-7-5700x.html"
+  }
+]
