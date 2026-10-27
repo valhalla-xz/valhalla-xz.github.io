@@ -904,8 +904,7 @@
     "power_connectors": ["ATX 24-pin", "CPU EPS (8+8-pin)"],
     "source_url": "https://www.gigabyte.com/Motherboard/X570-AORUS-MASTER-rev-10-11#sp"
   }
-]
-[
+
   {
     "type": "CPU",
     "model": "Core i9-14900K",
@@ -1065,9 +1064,7 @@
     "power_connectors": ["ATX 24-pin", "CPU EPS (8-pin)"],
     "source_url": "https://www.gigabyte.com/Motherboard/B650M-AORUS-ELITE-AX-ICE-rev-10/sp"
   }
-]
 
-[
   {
     "type": "CPU",
     "model": "Core 2 Quad Q6600",
